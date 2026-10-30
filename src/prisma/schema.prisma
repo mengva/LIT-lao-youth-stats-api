@@ -1,0 +1,468 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+  enginePath    = "./prisma/engines/query-engine-linux-musl-arm64-openssl-3.0.x"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator dbml {
+  provider            = "prisma-dbml-generator"
+  output              = "../dbml"
+  outputName          = "boilerplate.dbml"
+  projectName         = "Boilerplate"
+  projectDatabaseType = "PostgreSQL"
+  projectNote         = "Boilerplate DB Schema"
+}
+
+model User {
+  id       Int     @id @default(autoincrement())
+  username String  @unique
+  email    String  @unique
+  phone    String  @unique
+  password String
+  code     String? @unique
+
+  // --- Section 1: ຂໍ້ມູນສ່ວນຕົວ ---
+  firstName   String    @map("first_name")
+  lastName    String    @map("last_name")
+  englishName String?   @map("english_name") // ຊື່-ນາມສະກຸນ (ENG)
+  gender      String? // เพດ (ຊາຍ / ຍິງ)
+  dob         DateTime? @map("dob") // ວັນເກີດ
+
+  idCardNumber            String?             @unique @map("id_card_number") // ເລກບັດປະຈຳໂຕ
+  idCardNumberExpiredDate DateTime?           @map("id_card_number_expired_date") // ໝົດອາຍຸບັດປະຈຳໂຕ
+  isIdCardNumberExpired   Boolean             @default(false) @map("is_id_card_number_expired") // ໝົດອາຍຸບັດປະຈຳໂຕ
+  idCardNumberStatus      IdCardNumberStatus? @map("id_card_number_status") // ສະຖານະບັດປະຈຳໂຕ (ໝົດອາຍຸ / ບໍ່ໝົດ)
+
+  passportNumber            String?               @unique @map("passport_number") // ເລກພາສະໂປດ
+  passportNumberExpiredDate DateTime?             @map("passport_number_expired_date") // ໝົດອາຍຸພາສະໂປດ
+  isPassportNumberExpired   Boolean               @default(false) @map("is_passport_number_expired") // ໝົດອາຍຸພາສະໂປດ
+  passportNumberStatus      PassportNumberStatus? @map("passport_number_status") // ສະຖານະພາສະໂປດ (ໝົດອາຍຸ / ບໍ່ໝົດ)
+  nationality               String?               @map("nationality") // ສັ
+
+  ethnicGroup String? @map("ethnic_group") // ຊົນເຜົ່າ
+  religion    String? @map("religion") // ສາສະໜາ
+  avatarUrl   String? @map("avatar_url") // ຮູບ 3x4 (Profile Image)
+
+  // --- Section 2: ທີ່ຢູ່ ແລະ ການຈັດຕັ້ງ ---
+  census         String?   @map("census") // ທີ່ຢູ່ຕາມສຳມະໂນຄົວ (ເພີ່ມເຕີມ)
+  educationLevel String?   @map("education_level") // ລະດັບການສຶກສາ
+  occupation     String?   @map("occupation") // ອາຊີບ
+  workplace      String?   @map("workplace") // ບ່ອນເຮັດວຽກ / ອາຊີບ
+  youthJoinDate  DateTime? @map("youth_join_date") // ວັນເຂົ້າຊາວໜຸ່ມ
+  youthPosition  String?   @map("youth_position") // ຕຳແໜ່ງ (ເລຂາໜ່ວຍ, ຯລຯ)
+
+  // ສະມາຊິກອົງການຈັດຕັ້ງອື່ນ (Checkbox ຈາກ UI)
+  isPartyMember Boolean @default(false) @map("is_party_member") // ພັກ
+  isUnionMember Boolean @default(false) @map("is_union_member") // ກຳມະບານ
+  isWomenMember Boolean @default(false) @map("is_women_member") // ແມ່ຍິງ
+
+  // --- Section 3: ເອກະສານແນບ (File Uploads) ---
+  idCardFileUrl String? @map("id_card_file_url") // ໄຟລ໌ບັດປະຈຳໂຕ/ສຳມະໂນຄົວ
+  cvFileUrl     String? @map("cv_file_url") // ໃບປະຫວັດ (ຟອມ 01)
+
+  // --- System Fields & Relations ---
+  role      Role       @default(ADMIN)
+  status    UserStatus @default(DRAFT)
+  isActive  Boolean    @default(true) @map("is_active")
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+  deletedAt DateTime?  @map("deleted_at") @db.Timestamp
+
+  userLog               UserLog[]
+  payments              Payment[]
+  villageId             Int                    @map("villageid")
+  village               Village                @relation(fields: [villageId], references: [id], onDelete: Cascade)
+  villageYouthSecretary VillageYouthSecretary? @relation("UserVillageYouthSecretary")
+
+  @@index([role])
+  @@index([isActive])
+  @@index([villageId])
+  @@index([status])
+  @@map("users")
+}
+
+model UserLog {
+  id         Int        @id @default(autoincrement())
+  userId     Int
+  action     ActionType
+  changedBy  Int
+  changeDate DateTime   @default(now())
+  oldEmail   String?
+  newEmail   String?
+  oldPhone   String?
+  newPhone   String?
+  oldRole    Role?
+  newRole    Role?
+  user       User       @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_log")
+}
+
+model Payment {
+  id             Int           @id @default(autoincrement())
+  userId         Int           @map("user_id")
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("LAK") // ສະກຸນເງິນ (ກີບ: LAK)
+  status         PaymentStatus @default(PENDING)
+  paymentMethod  String?       @map("payment_method") // ເງິນສົດ / ທະນາຄານ / ອອນໄລນ໌
+  transactionRef String?       @map("transaction_ref") // ເລກທີບິນ / ເລກອ້າງອີງການຈ່າຍເງິນ
+  paidAt         DateTime?     @map("paid_at") // ວັນທີຈ່າຍເງິນ
+  note           String?
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@map("payments")
+}
+
+enum Role {
+  ADMIN
+  PROVINCE_ADMIN
+  DISTRICT_ADMIN
+  VILLAGE_ADMIN
+
+  @@map("Role")
+}
+
+enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+  PATCH
+}
+
+enum UserStatus {
+  DRAFT // ຮ່າງ
+  SUBMITTED // ສົ່ງແລ້ວ
+
+  // ຂັ້ນບ້ານ (Village) - ຖ່າມີການກວດສອບພາຍໃນບ້ານ
+  VILLAGE_APPROVED // ບ້ານອະນຸມັດ
+  // VILLAGE_REJECTED    // ບ້ານສົ່ງຄືນ (Rejected ກັບມາ)
+
+  // ຂັ້ນຕາແສງ (Zone)
+  ZONE_APPROVED // ຕາແສງອະນຸມັດ
+  ZONE_REJECTED // ຕາແສງສົ່ງຄືນ (Rejected ກັບມາ)
+
+  // ຂັ້ນເມືອງ (District)
+  DISTRICT_APPROVED // ເມືອງອະນຸມັດ
+  DISTRICT_REJECTED // ເມືອງສົ່ງຄືນ (Rejected ກັບມາ)
+
+  // ຂັ້ນແຂວງ (Province)
+  PROVINCE_APPROVED // ແຂວງອະນຸມັດ
+  PROVINCE_REJECTED // ແຂວງສົ່ງຄືນ (Rejected ກັບມາ)
+
+  // ຂັ້ນສູນກາງ (Central)
+  CENTRAL_APPROVED // ສູນກາງອະນຸມັດ (DONE)
+  CENTRAL_REJECTED // ສູນກາງສົ່ງຄືນ (Rejected ກັບມາ)
+
+  REGISTERED // ລົງທະບຽນແລ້ວ / ສຳເລັດສົມບູນ
+  REGISTERED_FAILED // ລົງທະບຽນບໍ່ສຳເລັດ / ເກີດຂໍ້ຜິດພາດ
+}
+
+// ສະຖານະບັດປະຈຳໂຕ
+enum IdCardNumberStatus {
+  PENDING_ISSUANCE // ລໍຖ້າອອກບັດ
+  ISSUED // ອອກແລ້ວ
+  EXPIRED // ໝົດອາຍຸ
+}
+
+// ສະຖານະພາສະໂປດ (Passport)
+enum PassportNumberStatus {
+  PENDING_ISSUANCE // ລໍຖ້າອອກບັດ
+  ISSUED // ອອກແລ້ວ
+  EXPIRED // ໝົດອາຍຸ
+}
+
+// ສະຖານະການຊຳລະເງິນ (Payment)
+enum PaymentStatus {
+  PENDING // ລໍຖ້າຊຳລະ
+  PAID // ຊຳລະແລ້ວ
+  FAILED // ຊຳລະບໍ່ສຳເລັດ
+  REFUNDED // ຄືນເງິນ
+
+  @@map("PaymentStatus")
+}
+
+model Central {
+  id        Int        @id @default(autoincrement())
+  nameLa    String     @map("name_la")
+  code      String     @unique
+  provinces Province[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([code])
+  @@index([createdAt])
+  @@map("centrals")
+}
+
+model Province {
+  id        Int        @id @default(autoincrement())
+  centralId Int        @map("central_id")
+  central   Central    @relation(fields: [centralId], references: [id], onDelete: Cascade)
+  nameLa    String     @map("name_la")
+  code      String     @unique
+  districts District[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([centralId])
+  @@map("provinces")
+}
+
+model District {
+  id         Int       @id @default(autoincrement())
+  provinceId Int       @map("province_id")
+  province   Province  @relation(fields: [provinceId], references: [id], onDelete: Cascade)
+  nameLa     String    @map("name_la")
+  code       String
+  villages   Village[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  zones      Zone[]
+
+  @@index([provinceId])
+  @@index([code])
+  @@index([createdAt])
+  @@map("districts")
+}
+
+model Zone {
+  id         Int       @id @default(autoincrement())
+  districtId Int       @map("district_id")
+  district   District  @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  nameLa     String    @map("name_la")
+  code       String
+  villages   Village[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([districtId])
+  @@index([code])
+  @@map("zones")
+}
+
+model Village {
+  id         Int      @id @default(autoincrement())
+  districtId Int      @map("district_id")
+  district   District @relation(fields: [districtId], references: [id], onDelete: Cascade)
+  zoneId     Int      @map("zone_id")
+  zone       Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  nameLa     String   @map("name_la")
+  code       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  users           User[]
+  youthStatistics YouthStatistic[]
+  // villageSecretaries VillageYouthSecretary[]
+
+  @@index([districtId])
+  @@index([zoneId])
+  @@index([code])
+  @@index([createdAt])
+  @@map("villages")
+}
+
+// ==========================================
+// 2. ສະຖິຕິສະມາຊິກຊາວໜຸ່ມ - ໄວໜຸ່ມ (Sheet 1 - Form 2.1)
+// ==========================================
+
+model YouthStatistic {
+  id        Int     @id @default(autoincrement())
+  villageId Int     @map("village_id")
+  village   Village @relation(fields: [villageId], references: [id], onDelete: Cascade)
+  period    String // ຕົວຢ່າງ: "2026_6M1"
+
+  nonMemberMale     Int @default(0) @map("non_member_male")
+  nonMemberFemale   Int @default(0) @map("non_member_female")
+  totalMemberMale   Int @default(0) @map("total_member_male")
+  totalMemberFemale Int @default(0) @map("total_member_female")
+
+  studentMale        Int @default(0) @map("student_male")
+  studentFemale      Int @default(0) @map("student_female")
+  universityMale     Int @default(0) @map("university_male") // ນັກສຶກສາ
+  universityFemale   Int @default(0) @map("university_female")
+  civilServantMale   Int @default(0) @map("civil_servant_male") // ພະນັກງານ
+  civilServantFemale Int @default(0) @map("civil_servant_female")
+  publicMale         Int @default(0) @map("public_male") // ປະຊາຊົນ
+  publicFemale       Int @default(0) @map("public_female")
+
+  partyMemberMale   Int @default(0) @map("party_member_male") // ສະມາຊິກພັກ
+  partyMemberFemale Int @default(0) @map("party_member_female")
+  unionMale         Int @default(0) @map("union_male") // ກໍາມະບານ
+  unionFemale       Int @default(0) @map("union_female")
+
+  disciplinedMale   Int @default(0) @map("disciplined_male") // ຖືກປະຕິບັດວິໄນ
+  disciplinedFemale Int @default(0) @map("disciplined_female")
+  overAgeMale       Int @default(0) @map("over_age_male") // ສະມາຊິກ ຊປປລ ອາຍຸກາຍ 35 ປີ
+  overAgeFemale     Int @default(0) @map("over_age_female")
+  resignedMale      Int @default(0) @map("resigned_male") // ລາອອກພາຍໃນປີ
+  resignedFemale    Int @default(0) @map("resigned_female")
+  newJoinedMale     Int @default(0) @map("new_joined_male") // ຮັບເຂົ້າໃໝ່
+  newJoinedFemale   Int @default(0) @map("new_joined_female")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("youth_statistics")
+}
+
+// ==========================================
+// 3. ເລຂາຊາວໜຸ່ມ ທີ່ເປັນນາຍບ້ານ/ຮອງນາຍບ້ານ (Sheet 2 - Form 2.2)
+// ==========================================
+
+model VillageYouthSecretary {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique @map("user_id")
+  // villageId           Int      @map("village_id")
+  // districtId          Int      @map("district_id")
+  // provinceId          Int      @map("province_id")
+  user   User @relation("UserVillageYouthSecretary", fields: [userId], references: [id], onDelete: Cascade)
+  // village             Village  @relation(fields: [villageId], references: [id], onDelete: Cascade)
+  // district            District @relation("DistrictVillageYouthSecretary", fields: [districtId], references: [id], onDelete: Cascade)
+  // province            Province @relation("ProvinceVillageYouthSecretary", fields: [provinceId], references: [id], onDelete: Cascade)
+
+  isVillageHead       Boolean  @default(false) @map("is_village_head") // ເປັນນາຍບ້ານ
+  isDeputyVillageHead Boolean  @default(false) @map("is_deputy_village_head") // ເປັນຮອງນາຍບ້ານ
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  // @@index([villageId])
+  // @@index([districtId])
+  // @@index([provinceId])
+
+  @@index([userId])
+  @@map("village_youth_secretaries")
+}
+
+// ==========================================
+// 4. ພະນັກງານຍົກຍ້າຍປ່ຽນແທນ (Sheet 3 - Form 2.3)
+// ==========================================
+
+model TransferRecord {
+  id                Int      @id @default(autoincrement())
+  sectionType       String   @map("section_type") // ພາກສ່ວນ (ແຂວງ/ເມືອງ)
+  fullName          String   @map("full_name")
+  newPosition       String   @map("new_position") // ຕຳແໜ່ງ ແລະ ບ່ອນປະຈຳການໃໝ່
+  previousWorkplace String   @map("previous_workplace") // ຍົກຍ້າຍມາແຕ່ພາກສ່ວນອື່ນ
+  transferType      String // ເພດການຍົກຍ້າຍ (ຍ້າຍອອກ / ย້າຍມາ)
+  note              String? // ໝາຍເຫດ
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("transfer_records")
+}
+
+// ==========================================
+// 5. ຕິດຕາມກອງປະຊຸມອົງຄະນະພັກ (Sheet 4 - Form 2.4)
+// ==========================================
+
+model PartyMeetingTracking {
+  id               Int     @id @default(autoincrement())
+  officeLevel      String  @map("office_level") // ຫ້ອງການຊາວໜຸ່ມ ແຂວງ ຫຼື ເມືອງ
+  totalStaff       Int     @default(0) @map("total_staff")
+  femaleStaff      Int     @default(0) @map("female_staff")
+  secretaryInParty Boolean @default(false) @map("secretary_in_party") // ເລຂາລົງສະໝັກ ແລະ ຕິດຄະນະພັກ
+  note             String?
+
+  @@map("party_meeting_trackings")
+}
+
+// ==========================================
+// 6. ພະນັກງານຜູ້ຮັບຜິດຊອບວຽກຈັດຕັ້ງ & ພະນັກງານຊາວໜຸ່ມອາຊີບ (Sheet 5 & 9 - Forms 2.5 & 2.9)
+// ==========================================
+
+model StaffProfile {
+  id             Int       @id @default(autoincrement())
+  fullName       String    @map("full_name")
+  dob            DateTime? @map("dob")
+  stateJoinDate  DateTime? @map("state_join_date") // ວ.ດ.ປ ສັງກັດລັດ
+  gender         String // "ຍິງ" ຫຼື "ຊາຍ"
+  ethnicity      String? // ເຜົ່າ
+  educationLevel String?   @map("education_level") // ລະດັບການສຶກສາ (ຊັ້ນ)
+  major          String? // ວິຊາສະເພາະ
+  partyJoinDate  DateTime? @map("party_join_date") // ເຂົ້າພັກ
+  youthJoinDate  DateTime? @map("youth_join_date") // ເຂົ້າຊາວໜຸ່ມ
+  unionJoinDate  DateTime? @map("union_join_date") // ເຂົ້າກຳມະບານ
+  position       String? // ຕຳແໜ່ງ
+  theoryLevel    String?   @map("theory_level") // ລະດັບທິດສະດີ
+  languages      String? // ພາສາທີ່ຮູ້
+  phone          String?
+  staffCategory  String    @map("staff_category") // "ORGANIZATION_STAFF" (2.5) ຫຼື "PROFESSIONAL_YOUTH" (2.9)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("staff_profiles")
+}
+
+// ==========================================
+// 7. ຄະນະບໍລິຫານງານ / ຄະນະປະຈຳ (Sheet 6 - Form 2.6)
+// ==========================================
+
+model ExecutiveCommittee {
+  id             Int       @id @default(autoincrement())
+  fullName       String    @map("full_name")
+  age            Int?
+  ethnicity      String?
+  birthDate      DateTime? @map("birth_date")
+  stateJoinDate  DateTime? @map("state_join_date")
+  statePosition  String?   @map("state_position") // ຕຳແໜ່ງລັດ
+  partyPosition  String?   @map("party_position") // ຕຳແໜ່ງພັກ
+  youthPosition  String?   @map("youth_position") // ຕຳແໜ່ງຊາວໜຸ່ມ
+  workplace      String? // ບ່ອນປະຈຳການ
+  educationLevel String?   @map("education_level") // ລະດັບວິຊາສະເພາະ
+  theoryLevel    String?   @map("theory_level") // ລະດັບທິດສະດີ
+  phone          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("executive_committees")
+}
+
+// ==========================================
+// 8. ກອງເລຂາປະສານງານ (Sheet 7 - Form 2.7)
+// ==========================================
+
+model SecretariatCoordinator {
+  id            Int      @id @default(autoincrement())
+  provinceName  String   @map("province_name") // ຊື່ແຂວງ/ກະຊວງ/ອົງການ
+  fullName      String   @map("full_name")
+  gender        String // ຍິງ / ຊາຍ
+  partyPosition String?  @map("party_position") // ຕຳແໜ່ງພັກ
+  statePosition String?  @map("state_position") // ຕຳແໜ່ງລັດ
+  officePhone   String?  @map("office_phone") // ເບີໂທຕັ້ງໂຕະ
+  whatsapp      String? // ເບີໂທ / WhatsApp
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("secretariat_coordinators")
+}
+
+// ==========================================
+// 9. ໂຄງປະກອບກົງຈັກ 5 ຂະແໜງ / 3 ໜ່ວຍງານ (Sheet 8 - Form 2.8)
+// ==========================================
+
+model OrganizationalStructure {
+  id                  Int      @id @default(autoincrement())
+  provinceName        String   @map("province_name")
+  districtName        String?  @map("district_name") // ຖ່າມີຂັ້ນເມືອງ
+  provinceDeptCount   Int      @default(0) @map("province_dept_count") // ຈຳນວນຂະແໜງຂັ້ນແຂວງ
+  provinceStaffCount  Int      @default(0) @map("province_staff_count") // ພະນັກງານຂັ້ນແຂວງ
+  missingProvinceDept String?  @map("missing_province_dept") // ຂະແໜງຂັ້ນແຂວງທີ່ບໍ່ຄົບ
+  districtUnitCount   Int      @default(0) @map("district_unit_count") // ຈຳນວນໜ່ວຍງານຂັ້ນເມືອງ
+  districtStaffCount  Int      @default(0) @map("district_staff_count") // ພະນັກງານຂັ້ນເມືອງ
+  missingDistrictUnit String?  @map("missing_district_unit") // ໜ່ວຍງານຂັ້ນເມືອງທີ່ບໍ່ຄົບ
+  note                String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("organizational_structures")
+}

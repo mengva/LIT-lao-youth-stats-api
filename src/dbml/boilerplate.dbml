@@ -1,0 +1,343 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Project "Boilerplate" {
+  database_type: 'PostgreSQL'
+  Note: 'Boilerplate DB Schema'
+}
+
+Table users {
+  id Int [pk, increment]
+  username String [unique, not null]
+  email String [unique, not null]
+  phone String [unique, not null]
+  password String [not null]
+  code String [unique]
+  firstName String [not null]
+  lastName String [not null]
+  englishName String
+  gender String
+  dob DateTime
+  idCardNumber String [unique]
+  idCardNumberExpiredDate DateTime
+  isIdCardNumberExpired Boolean [not null, default: false]
+  idCardNumberStatus IdCardNumberStatus
+  passportNumber String [unique]
+  passportNumberExpiredDate DateTime
+  isPassportNumberExpired Boolean [not null, default: false]
+  passportNumberStatus PassportNumberStatus
+  nationality String
+  ethnicGroup String
+  religion String
+  avatarUrl String
+  census String
+  educationLevel String
+  occupation String
+  workplace String
+  youthJoinDate DateTime
+  youthPosition String
+  isPartyMember Boolean [not null, default: false]
+  isUnionMember Boolean [not null, default: false]
+  isWomenMember Boolean [not null, default: false]
+  idCardFileUrl String
+  cvFileUrl String
+  role Role [not null, default: 'ADMIN']
+  status UserStatus [not null, default: 'DRAFT']
+  isActive Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  deletedAt DateTime
+  userLog user_log [not null]
+  payments payments [not null]
+  villageId Int [not null]
+  village villages [not null]
+  villageYouthSecretary village_youth_secretaries
+}
+
+Table user_log {
+  id Int [pk, increment]
+  userId Int [not null]
+  action ActionType [not null]
+  changedBy Int [not null]
+  changeDate DateTime [default: `now()`, not null]
+  oldEmail String
+  newEmail String
+  oldPhone String
+  newPhone String
+  oldRole Role
+  newRole Role
+  user users [not null]
+}
+
+Table payments {
+  id Int [pk, increment]
+  userId Int [not null]
+  user users [not null]
+  amount Decimal [not null]
+  currency String [not null, default: 'LAK']
+  status PaymentStatus [not null, default: 'PENDING']
+  paymentMethod String
+  transactionRef String
+  paidAt DateTime
+  note String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table centrals {
+  id Int [pk, increment]
+  nameLa String [not null]
+  code String [unique, not null]
+  provinces provinces [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table provinces {
+  id Int [pk, increment]
+  centralId Int [not null]
+  central centrals [not null]
+  nameLa String [not null]
+  code String [unique, not null]
+  districts districts [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table districts {
+  id Int [pk, increment]
+  provinceId Int [not null]
+  province provinces [not null]
+  nameLa String [not null]
+  code String [not null]
+  villages villages [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  zones zones [not null]
+}
+
+Table zones {
+  id Int [pk, increment]
+  districtId Int [not null]
+  district districts [not null]
+  nameLa String [not null]
+  code String [not null]
+  villages villages [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table villages {
+  id Int [pk, increment]
+  districtId Int [not null]
+  district districts [not null]
+  zoneId Int [not null]
+  zone zones [not null]
+  nameLa String [not null]
+  code String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  users users [not null]
+  youthStatistics youth_statistics [not null]
+}
+
+Table youth_statistics {
+  id Int [pk, increment]
+  villageId Int [not null]
+  village villages [not null]
+  period String [not null]
+  nonMemberMale Int [not null, default: 0]
+  nonMemberFemale Int [not null, default: 0]
+  totalMemberMale Int [not null, default: 0]
+  totalMemberFemale Int [not null, default: 0]
+  studentMale Int [not null, default: 0]
+  studentFemale Int [not null, default: 0]
+  universityMale Int [not null, default: 0]
+  universityFemale Int [not null, default: 0]
+  civilServantMale Int [not null, default: 0]
+  civilServantFemale Int [not null, default: 0]
+  publicMale Int [not null, default: 0]
+  publicFemale Int [not null, default: 0]
+  partyMemberMale Int [not null, default: 0]
+  partyMemberFemale Int [not null, default: 0]
+  unionMale Int [not null, default: 0]
+  unionFemale Int [not null, default: 0]
+  disciplinedMale Int [not null, default: 0]
+  disciplinedFemale Int [not null, default: 0]
+  overAgeMale Int [not null, default: 0]
+  overAgeFemale Int [not null, default: 0]
+  resignedMale Int [not null, default: 0]
+  resignedFemale Int [not null, default: 0]
+  newJoinedMale Int [not null, default: 0]
+  newJoinedFemale Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table village_youth_secretaries {
+  id Int [pk, increment]
+  userId Int [unique, not null]
+  user users [not null]
+  isVillageHead Boolean [not null, default: false]
+  isDeputyVillageHead Boolean [not null, default: false]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table transfer_records {
+  id Int [pk, increment]
+  sectionType String [not null]
+  fullName String [not null]
+  newPosition String [not null]
+  previousWorkplace String [not null]
+  transferType String [not null]
+  note String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table party_meeting_trackings {
+  id Int [pk, increment]
+  officeLevel String [not null]
+  totalStaff Int [not null, default: 0]
+  femaleStaff Int [not null, default: 0]
+  secretaryInParty Boolean [not null, default: false]
+  note String
+}
+
+Table staff_profiles {
+  id Int [pk, increment]
+  fullName String [not null]
+  dob DateTime
+  stateJoinDate DateTime
+  gender String [not null]
+  ethnicity String
+  educationLevel String
+  major String
+  partyJoinDate DateTime
+  youthJoinDate DateTime
+  unionJoinDate DateTime
+  position String
+  theoryLevel String
+  languages String
+  phone String
+  staffCategory String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table executive_committees {
+  id Int [pk, increment]
+  fullName String [not null]
+  age Int
+  ethnicity String
+  birthDate DateTime
+  stateJoinDate DateTime
+  statePosition String
+  partyPosition String
+  youthPosition String
+  workplace String
+  educationLevel String
+  theoryLevel String
+  phone String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table secretariat_coordinators {
+  id Int [pk, increment]
+  provinceName String [not null]
+  fullName String [not null]
+  gender String [not null]
+  partyPosition String
+  statePosition String
+  officePhone String
+  whatsapp String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table organizational_structures {
+  id Int [pk, increment]
+  provinceName String [not null]
+  districtName String
+  provinceDeptCount Int [not null, default: 0]
+  provinceStaffCount Int [not null, default: 0]
+  missingProvinceDept String
+  districtUnitCount Int [not null, default: 0]
+  districtStaffCount Int [not null, default: 0]
+  missingDistrictUnit String
+  note String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Enum Role {
+  ADMIN
+  PROVINCE_ADMIN
+  DISTRICT_ADMIN
+  VILLAGE_ADMIN
+}
+
+Enum ActionType {
+  CREATE
+  UPDATE
+  DELETE
+  PATCH
+}
+
+Enum UserStatus {
+  DRAFT
+  SUBMITTED
+  VILLAGE_APPROVED
+  ZONE_APPROVED
+  ZONE_REJECTED
+  DISTRICT_APPROVED
+  DISTRICT_REJECTED
+  PROVINCE_APPROVED
+  PROVINCE_REJECTED
+  CENTRAL_APPROVED
+  CENTRAL_REJECTED
+  REGISTERED
+  REGISTERED_FAILED
+}
+
+Enum IdCardNumberStatus {
+  PENDING_ISSUANCE
+  ISSUED
+  EXPIRED
+}
+
+Enum PassportNumberStatus {
+  PENDING_ISSUANCE
+  ISSUED
+  EXPIRED
+}
+
+Enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+Ref: users.villageId > villages.id [delete: Cascade]
+
+Ref: user_log.userId > users.id
+
+Ref: payments.userId > users.id [delete: Cascade]
+
+Ref: provinces.centralId > centrals.id [delete: Cascade]
+
+Ref: districts.provinceId > provinces.id [delete: Cascade]
+
+Ref: zones.districtId > districts.id [delete: Cascade]
+
+Ref: villages.districtId > districts.id [delete: Cascade]
+
+Ref: villages.zoneId > zones.id [delete: Cascade]
+
+Ref: youth_statistics.villageId > villages.id [delete: Cascade]
+
+Ref: village_youth_secretaries.userId - users.id [delete: Cascade]
